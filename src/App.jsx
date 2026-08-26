@@ -20,15 +20,20 @@ function App() {
     formData.append("upload_preset", "streetcaps_unsigned");
 
     try {
-      const res = await fetch("https://streetcapsapi.onrender.com/api/productos", {
+      // ⚠️ ATENCIÓN: Reemplaza TU_CLOUD_NAME por el nombre real de tu cuenta de Cloudinary
+      const res = await fetch("https://api.cloudinary.com/v1_1/nxhnemnx/image/upload", {
         method: "POST",
         body: formData
       });
+      
       const data = await res.json();
 
       if (data.secure_url) {
         setImagenUrl(data.secure_url);
         alert("¡Foto subida con éxito!");
+      } else {
+        alert("Hubo un problema al subir la foto a Cloudinary. Revisa la consola.");
+        console.error(data);
       }
     } catch (err) {
       console.error("Error al subir la imagen:", err);
