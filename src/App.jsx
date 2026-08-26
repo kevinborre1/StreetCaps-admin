@@ -29,11 +29,18 @@ function App() {
       const data = await res.json();
 
       if (data.secure_url) {
-        setImagenUrl(data.secure_url);
-        alert("¡Foto subida con éxito!");
-      } else {
-        alert("Hubo un problema al subir la foto a Cloudinary. Revisa la consola.");
-        console.error(data);
+        // 1. Dividimos la URL original para insertar las reglas
+        const partes = data.secure_url.split('/upload/');
+        
+        // 2. Aplicamos las transformaciones:
+        // w_800,h_800 = Tamaño de 800x800 px
+        // c_fill = Recorta el sobrante sin deformar
+        // g_auto = Detecta el objeto principal (la gorra) y lo centra
+        // q_auto = Comprime el peso del archivo sin perder calidad
+        const urlOptimizada = `${partes[0]}/upload/c_fill,w_800,h_800,g_auto,q_auto/${partes[1]}`;
+        
+        setImagenUrl(urlOptimizada);
+        alert("¡Foto subida, recortada y optimizada con éxito!");
       }
     } catch (err) {
       console.error("Error al subir la imagen:", err);
@@ -156,7 +163,18 @@ function App() {
               className="form-input"
             />
             {subiendo && <p className="status-text loading">Subiendo imagen a la nube...</p>}
-            {imagenUrl && <p className="status-text success">✓ Imagen cargada correctamente</p>}
+            {imagenUrl && (
+              <div style={{ marginTop: '15px' }}>
+                <p className="status-text success" style={{ marginBottom: '8px' }}>
+                  ✓ Imagen cargada y optimizada:
+                </p>
+                <img 
+                  src={imagenUrl} 
+                  alt="Vista previa" 
+                  style={{ width: '120px', height: '120px', borderRadius: '8px', border: '1px solid var(--border-color)', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }} 
+                />
+              </div>
+            )}
           </div>
         </div>
         <button type="submit" className="submit-btn" disabled={subiendo}>
