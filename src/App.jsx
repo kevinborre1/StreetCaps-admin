@@ -105,7 +105,7 @@ function App() {
       formData.append("upload_preset", "streetcaps_unsigned"); // Tu preset de Cloudinary
 
       // ⚠️ ATENCIÓN: Reemplaza TU_CLOUD_NAME por el nombre real de tu cuenta
-      const res = await fetch("https://api.cloudinary.com/v1_1/TU_CLOUD_NAME/image/upload", {
+      const res = await fetch("https://api.cloudinary.com/v1_1/nxhnemnx/image/upload", {
         method: "POST",
         body: formData
       });
