@@ -172,3 +172,36 @@ body {
     grid-template-columns: 1fr; /* Una sola columna en celulares */
   }
 }
+/* --- Modal del Recortador de Imágenes --- */
+.cropper-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.85);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.cropper-container {
+  position: relative;
+  width: 90%;
+  max-width: 400px;
+  height: 60vh;
+  background: #222;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.cropper-controls {
+  margin-top: 20px;
+  display: flex;
+  gap: 15px;
+}
+
+.btn-confirm { background: var(--success-color); color: white; padding: 12px 24px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
+.btn-cancel { background: var(--danger-color); color: white; padding: 12px 24px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }

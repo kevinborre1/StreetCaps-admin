@@ -1,5 +1,52 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import Cropper from 'react-easy-crop';
 import './App.css';
+
+// --- Funciones Auxiliares para el Recorte ---
+const readFile = (file) => {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.addEventListener('load', () => resolve(reader.result), false);
+    reader.readAsDataURL(file);
+  });
+};
+
+const createImage = (url) =>
+  new Promise((resolve, reject) => {
+    const image = new Image();
+    image.addEventListener('load', () => resolve(image));
+    image.addEventListener('error', (error) => reject(error));
+    image.setAttribute('crossOrigin', 'anonymous');
+    image.src = url;
+  });
+
+async function getCroppedImg(imageSrc, pixelCrop) {
+  const image = await createImage(imageSrc);
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+
+  canvas.width = pixelCrop.width;
+  canvas.height = pixelCrop.height;
+
+  ctx.drawImage(
+    image,
+    pixelCrop.x,
+    pixelCrop.y,
+    pixelCrop.width,
+    pixelCrop.height,
+    0,
+    0,
+    pixelCrop.width,
+    pixelCrop.height
+  );
+
+  return new Promise((resolve) => {
+    canvas.toBlob((blob) => {
+      resolve(blob);
+    }, 'image/jpeg', 0.9); // 0.9 es para buena calidad con peso ligero
+  });
+}
+// ---------------------------------------------
 
 function App() {
   const [productos, setProductos] = useState([]);
@@ -10,44 +57,11 @@ function App() {
   const [imagenUrl, setImagenUrl] = useState('');
   const [subiendo, setSubiendo] = useState(false);
 
-  const handleImageUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    setSubiendo(true);
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("upload_preset", "streetcaps_unsigned");
-
-    try {
-      // ⚠️ ATENCIÓN: Reemplaza TU_CLOUD_NAME por el nombre real de tu cuenta de Cloudinary
-      const res = await fetch("https://api.cloudinary.com/v1_1/nxhnemnx/image/upload", {
-        method: "POST",
-        body: formData
-      });
-      
-      const data = await res.json();
-
-      if (data.secure_url) {
-        // 1. Dividimos la URL original para insertar las reglas
-        const partes = data.secure_url.split('/upload/');
-        
-        // 2. Aplicamos las transformaciones:
-        // w_800,h_800 = Tamaño de 800x800 px
-        // c_fill = Recorta el sobrante sin deformar
-        // g_auto = Detecta el objeto principal (la gorra) y lo centra
-        // q_auto = Comprime el peso del archivo sin perder calidad
-        const urlOptimizada = `${partes[0]}/upload/c_fill,w_800,h_800,g_auto,q_auto/${partes[1]}`;
-        
-        setImagenUrl(urlOptimizada);
-        alert("¡Foto subida, recortada y optimizada con éxito!");
-      }
-    } catch (err) {
-      console.error("Error al subir la imagen:", err);
-    } finally {
-      setSubiendo(false);
-    }
-  };
+  // Estados del Recortador
+  const [imageSrc, setImageSrc] = useState(null);
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
 
   const obtenerProductos = async () => {
     try {
@@ -64,6 +78,52 @@ function App() {
   useEffect(() => {
     obtenerProductos();
   }, []);
+
+  // 1. El usuario selecciona la foto y abrimos el modal
+  const onFileChange = async (e) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const file = e.target.files[0];
+      let imageDataUrl = await readFile(file);
+      setImageSrc(imageDataUrl); // Esto abre el modal de recorte
+    }
+  };
+
+  // 2. Guarda las coordenadas mientras el usuario mueve el mouse
+  const onCropComplete = useCallback((croppedArea, croppedAreaPixels) => {
+    setCroppedAreaPixels(croppedAreaPixels);
+  }, []);
+
+  // 3. El usuario confirma el recorte y lo subimos a Cloudinary
+  const uploadCroppedImage = async () => {
+    setSubiendo(true);
+    try {
+      // Extraemos el pedazo de foto recortado
+      const croppedImageBlob = await getCroppedImg(imageSrc, croppedAreaPixels);
+
+      const formData = new FormData();
+      formData.append("file", croppedImageBlob);
+      formData.append("upload_preset", "streetcaps_unsigned"); // Tu preset de Cloudinary
+
+      // ⚠️ ATENCIÓN: Reemplaza TU_CLOUD_NAME por el nombre real de tu cuenta
+      const res = await fetch("https://api.cloudinary.com/v1_1/TU_CLOUD_NAME/image/upload", {
+        method: "POST",
+        body: formData
+      });
+      
+      const data = await res.json();
+
+      if (data.secure_url) {
+        setImagenUrl(data.secure_url);
+        setImageSrc(null); // Cerramos el modal
+        alert("¡Foto recortada y subida con éxito!");
+      }
+    } catch (err) {
+      console.error("Error al subir la imagen:", err);
+      alert("Hubo un error al procesar la imagen.");
+    } finally {
+      setSubiendo(false);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -97,12 +157,10 @@ function App() {
 
   const eliminarProducto = async (id) => {
     if (!confirm('¿Estás seguro de eliminar esta gorra?')) return;
-
     try {
       const response = await fetch(`https://streetcapsapi.onrender.com/api/productos/${id}`, {
         method: 'DELETE',
       });
-
       if (response.ok) {
         setProductos(productos.filter(p => p.id !== id));
       }
@@ -115,71 +173,71 @@ function App() {
     <div className="admin-container">
       <h1 className="admin-title">Panel de Administración - Street Caps</h1>
 
+      {/* --- MODAL DE RECORTE --- */}
+      {imageSrc && (
+        <div className="cropper-modal">
+          <h3 style={{color: 'white', marginBottom: '15px'}}>Ajustá la foto (Formato 4:5)</h3>
+          <div className="cropper-container">
+            <Cropper
+              image={imageSrc}
+              crop={crop}
+              zoom={zoom}
+              aspect={4 / 5} /* Aquí fijamos la proporción recomendada */
+              onCropChange={setCrop}
+              onCropComplete={onCropComplete}
+              onZoomChange={setZoom}
+            />
+          </div>
+          
+          {/* Control deslizante para el zoom */}
+          <input
+            type="range"
+            value={zoom}
+            min={1}
+            max={3}
+            step={0.1}
+            aria-labelledby="Zoom"
+            onChange={(e) => setZoom(e.target.value)}
+            style={{ width: '90%', maxWidth: '400px', marginTop: '15px' }}
+          />
+
+          <div className="cropper-controls">
+            <button className="btn-cancel" onClick={() => setImageSrc(null)}>Cancelar</button>
+            <button className="btn-confirm" onClick={uploadCroppedImage} disabled={subiendo}>
+              {subiendo ? 'Subiendo...' : 'Confirmar Recorte'}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Formulario de Carga */}
       <form onSubmit={handleSubmit} className="admin-form">
         <h3>Agregar Nueva Gorra</h3>
         <div className="form-grid">
-          <input 
-            type="text" 
-            placeholder="Nombre (ej. Snapback Pro)" 
-            value={nombre} 
-            onChange={e => setNombre(e.target.value)} 
-            required 
-            className="form-input"
-          />
-          <select 
-            value={tipo} 
-            onChange={e => setTipo(e.target.value)} 
-            className="form-input"
-          >
+          <input type="text" placeholder="Nombre (ej. Snapback Pro)" value={nombre} onChange={e => setNombre(e.target.value)} required className="form-input" />
+          <select value={tipo} onChange={e => setTipo(e.target.value)} className="form-input">
             <option value="Snapback">Snapback</option>
             <option value="Trucker">Trucker</option>
             <option value="Fitted">Fitted</option>
             <option value="Dad Hat">Dad Hat</option>
           </select>
-          <input 
-            type="number" 
-            placeholder="Precio ($)" 
-            value={precio} 
-            onChange={e => setPrecio(e.target.value)} 
-            required 
-            className="form-input"
-          />
-          <input 
-            type="number" 
-            placeholder="Stock disponible" 
-            value={stock} 
-            onChange={e => setStock(e.target.value)} 
-            required 
-            className="form-input"
-          />
+          <input type="number" placeholder="Precio ($)" value={precio} onChange={e => setPrecio(e.target.value)} required className="form-input" />
+          <input type="number" placeholder="Stock disponible" value={stock} onChange={e => setStock(e.target.value)} required className="form-input" />
+          
           <div className="file-upload-container">
             <label>Foto de la Gorra:</label>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleImageUpload}
-              required={!imagenUrl}
-              className="form-input"
-            />
-            {subiendo && <p className="status-text loading">Subiendo imagen a la nube...</p>}
+            <input type="file" accept="image/*" onChange={onFileChange} required={!imagenUrl} className="form-input" />
+            
+            {/* Vista previa pequeña en el formulario */}
             {imagenUrl && (
               <div style={{ marginTop: '15px' }}>
-                <p className="status-text success" style={{ marginBottom: '8px' }}>
-                  ✓ Imagen cargada y optimizada:
-                </p>
-                <img 
-                  src={imagenUrl} 
-                  alt="Vista previa" 
-                  style={{ width: '120px', height: '120px', borderRadius: '8px', border: '1px solid var(--border-color)', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }} 
-                />
+                <p className="status-text success" style={{ marginBottom: '8px' }}>✓ Imagen recortada lista</p>
+                <img src={imagenUrl} alt="Vista previa" style={{ width: '100px', borderRadius: '6px', border: '1px solid var(--border-color)' }} />
               </div>
             )}
           </div>
         </div>
-        <button type="submit" className="submit-btn" disabled={subiendo}>
-          {subiendo ? 'Subiendo...' : 'Guardar Gorra'}
-        </button>
+        <button type="submit" className="submit-btn" disabled={subiendo}>Guardar Gorra</button>
       </form>
 
       {/* Tabla de Control de Stock */}
@@ -203,13 +261,9 @@ function App() {
                 <td data-label="Nombre">{p.nombre}</td>
                 <td data-label="Tipo">{p.tipo}</td>
                 <td data-label="Precio">${p.precio.toLocaleString("es-AR")}</td>
-                <td data-label="Stock" className={p.stock > 0 ? 'stock-ok' : 'stock-low'}>
-                  {p.stock} un.
-                </td>
+                <td data-label="Stock" className={p.stock > 0 ? 'stock-ok' : 'stock-low'}>{p.stock} un.</td>
                 <td data-label="Acciones">
-                  <button onClick={() => eliminarProducto(p.id)} className="delete-btn">
-                    Eliminar
-                  </button>
+                  <button onClick={() => eliminarProducto(p.id)} className="delete-btn">Eliminar</button>
                 </td>
               </tr>
             ))}
