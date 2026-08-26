@@ -1,0 +1,174 @@
+/* Reseteo básico y variables */
+:root {
+  --bg-color: #f8f9fa;
+  --form-bg: #ffffff;
+  --text-dark: #333333;
+  --border-color: #dee2e6;
+  --primary-color: #000000;
+  --danger-color: #dc3545;
+  --success-color: #198754;
+  --blue-color: #0d6efd;
+}
+
+body {
+  margin: 0;
+  background-color: var(--bg-color);
+  color: var(--text-dark);
+}
+
+.admin-container {
+  padding: 20px;
+  font-family: system-ui, -apple-system, sans-serif;
+  max-width: 1000px;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+.admin-title {
+  font-size: clamp(1.5rem, 5vw, 2.2rem);
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+/* --- Formulario --- */
+.admin-form {
+  background: var(--form-bg);
+  padding: 25px;
+  border-radius: 12px;
+  margin-bottom: 40px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+}
+
+.admin-form h3 {
+  margin-top: 0;
+  margin-bottom: 20px;
+  font-size: 1.2rem;
+}
+
+.form-grid {
+  display: grid;
+  gap: 15px;
+  /* El auto-fit permite que las columnas se adapten solas. En móviles será 1 columna, en PC varias */
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.form-input {
+  padding: 12px;
+  width: 100%;
+  box-sizing: border-box;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  font-size: 1rem;
+  background-color: #fff;
+  transition: border-color 0.3s ease;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+.file-upload-container {
+  grid-column: 1 / -1; /* Ocupa todo el ancho disponible */
+}
+
+.file-upload-container label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.status-text {
+  font-size: 0.9rem;
+  margin-top: 8px;
+  font-weight: 500;
+}
+.status-text.loading { color: var(--blue-color); }
+.status-text.success { color: var(--success-color); }
+
+.submit-btn {
+  margin-top: 25px;
+  background: var(--primary-color);
+  color: #fff;
+  padding: 14px 20px;
+  border: none;
+  cursor: pointer;
+  border-radius: 6px;
+  width: 100%;
+  font-weight: bold;
+  font-size: 1.1rem;
+  transition: opacity 0.3s;
+}
+
+.submit-btn:hover:not(:disabled) {
+  opacity: 0.8;
+}
+.submit-btn:disabled {
+  background-color: #666;
+  cursor: not-allowed;
+}
+
+/* --- Tabla --- */
+.table-title {
+  margin-bottom: 15px;
+}
+
+.table-responsive {
+  width: 100%;
+  overflow-x: auto; /* Permite scroll horizontal en celulares */
+  background: var(--form-bg);
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+  -webkit-overflow-scrolling: touch;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 650px; /* Asegura que la tabla no se aplaste demasiado en móviles */
+  text-align: left;
+}
+
+.admin-table th, 
+.admin-table td {
+  padding: 15px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.admin-table th {
+  background: #f1f3f5;
+  font-weight: 600;
+}
+
+.stock-ok { color: var(--success-color); font-weight: bold; }
+.stock-low { color: var(--danger-color); font-weight: bold; }
+
+.delete-btn {
+  background: var(--danger-color);
+  color: #fff;
+  border: none;
+  padding: 8px 14px;
+  cursor: pointer;
+  border-radius: 5px;
+  font-size: 0.9rem;
+  transition: background 0.3s;
+}
+
+.delete-btn:hover {
+  background: #c82333;
+}
+
+/* --- Media Queries (Para celulares pequeños) --- */
+@media (max-width: 600px) {
+  .admin-container {
+    padding: 10px;
+  }
+  
+  .admin-form {
+    padding: 15px;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr; /* Una sola columna en celulares */
+  }
+}
