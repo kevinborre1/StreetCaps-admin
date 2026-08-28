@@ -104,7 +104,6 @@ function App() {
       formData.append("file", croppedImageBlob);
       formData.append("upload_preset", "streetcaps_unsigned"); // Tu preset de Cloudinary
 
-      // ⚠️ ATENCIÓN: Reemplaza TU_CLOUD_NAME por el nombre real de tu cuenta
       const res = await fetch("https://api.cloudinary.com/v1_1/nxhnemnx/image/upload", {
         method: "POST",
         body: formData
@@ -216,10 +215,10 @@ function App() {
         <div className="form-grid">
           <input type="text" placeholder="Nombre (ej. Snapback Pro)" value={nombre} onChange={e => setNombre(e.target.value)} required className="form-input" />
           <select value={tipo} onChange={e => setTipo(e.target.value)} className="form-input">
-            <option value="Snapback">Snapback</option>
-            <option value="Trucker">Trucker</option>
-            <option value="Fitted">Fitted</option>
-            <option value="Dad Hat">Dad Hat</option>
+            <option value="Snapback">New Era</option>
+            <option value="Trucker">Chrome Hearts</option>
+            <option value="Fitted"> Jordan</option>
+            <option value="Dad Hat">Belicas</option>
           </select>
           <input
             type="number"
