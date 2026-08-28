@@ -109,7 +109,7 @@ function App() {
         method: "POST",
         body: formData
       });
-      
+
       const data = await res.json();
 
       if (data.secure_url) {
@@ -176,7 +176,7 @@ function App() {
       {/* --- MODAL DE RECORTE --- */}
       {imageSrc && (
         <div className="cropper-modal">
-          <h3 style={{color: 'white', marginBottom: '15px'}}>Ajustá la foto (Formato 4:5)</h3>
+          <h3 style={{ color: 'white', marginBottom: '15px' }}>Ajustá la foto (Formato 4:5)</h3>
           <div className="cropper-container">
             <Cropper
               image={imageSrc}
@@ -188,7 +188,7 @@ function App() {
               onZoomChange={setZoom}
             />
           </div>
-          
+
           {/* Control deslizante para el zoom */}
           <input
             type="range"
@@ -221,13 +221,37 @@ function App() {
             <option value="Fitted">Fitted</option>
             <option value="Dad Hat">Dad Hat</option>
           </select>
-          <input type="number" placeholder="Precio ($)" value={precio} onChange={e => setPrecio(e.target.value)} required className="form-input" />
-          <input type="number" placeholder="Stock disponible" value={stock} onChange={e => setStock(e.target.value)} required className="form-input" />
-          
+          <input
+            type="number"
+            placeholder="Precio ($)"
+            value={precio}
+            min="0"
+            onChange={e => {
+              if (e.target.value === '' || Number(e.target.value) >= 0) {
+                setPrecio(e.target.value);
+              }
+            }}
+            required
+            className="form-input"
+          />
+
+          <input
+            type="number"
+            placeholder="Stock disponible"
+            value={stock}
+            min="0"
+            onChange={e => {
+              if (e.target.value === '' || Number(e.target.value) >= 0) {
+                setStock(e.target.value);
+              }
+            }}
+            required
+            className="form-input"
+          />
           <div className="file-upload-container">
             <label>Foto de la Gorra:</label>
             <input type="file" accept="image/*" onChange={onFileChange} required={!imagenUrl} className="form-input" />
-            
+
             {/* Vista previa pequeña en el formulario */}
             {imagenUrl && (
               <div style={{ marginTop: '15px' }}>
