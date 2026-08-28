@@ -51,7 +51,7 @@ async function getCroppedImg(imageSrc, pixelCrop) {
 function App() {
   const [productos, setProductos] = useState([]);
   const [nombre, setNombre] = useState('');
-  const [tipo, setTipo] = useState('Snapback');
+  const [tipo, setTipo] = useState('New Era');
   const [precio, setPrecio] = useState('');
   const [stock, setStock] = useState('');
   const [imagenUrl, setImagenUrl] = useState('');
