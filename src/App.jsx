@@ -215,10 +215,10 @@ function App() {
         <div className="form-grid">
           <input type="text" placeholder="Nombre (ej. Snapback Pro)" value={nombre} onChange={e => setNombre(e.target.value)} required className="form-input" />
           <select value={tipo} onChange={e => setTipo(e.target.value)} className="form-input">
-            <option value="Snapback">New Era</option>
-            <option value="Trucker">Chrome Hearts</option>
-            <option value="Fitted"> Jordan</option>
-            <option value="Dad Hat">Belicas</option>
+            <option value="New Era">New Era</option>
+            <option value="Chrome Hearts">Chrome Hearts</option>
+            <option value="Jordan">Jordan</option>
+            <option value="Belicas">Belicas</option>
           </select>
           <input
             type="number"
