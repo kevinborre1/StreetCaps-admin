@@ -43,13 +43,16 @@ async function getCroppedImg(imageSrc, pixelCrop) {
   return new Promise((resolve) => {
     canvas.toBlob((blob) => {
       resolve(blob);
-    }, 'image/jpeg', 0.9); // 0.9 es para buena calidad con peso ligero
+    }, 'image/jpeg', 0.9);
   });
 }
 // ---------------------------------------------
 
 function App() {
   const [productos, setProductos] = useState([]);
+  // NUEVO: Estado para las reseñas
+  const [reseñas, setReseñas] = useState([]); 
+
   const [nombre, setNombre] = useState('');
   const [tipo, setTipo] = useState('New Era');
   const [precio, setPrecio] = useState('');
@@ -57,7 +60,6 @@ function App() {
   const [imagenUrl, setImagenUrl] = useState('');
   const [subiendo, setSubiendo] = useState(false);
 
-  // Estados del Recortador
   const [imageSrc, setImageSrc] = useState(null);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
@@ -75,34 +77,45 @@ function App() {
     }
   };
 
+  // NUEVO: Función para obtener reseñas
+  const obtenerReseñas = async () => {
+    try {
+      // Uso localhost:8080. Si ya subiste la API a Render, cambialo por tu link de onrender
+      const response = await fetch('http://localhost:8080/api/resenas');
+      if (response.ok) {
+        const data = await response.json();
+        setReseñas(data.reverse()); // Reverse para ver las más nuevas arriba
+      }
+    } catch (error) {
+      console.error('Error al cargar reseñas:', error);
+    }
+  };
+
   useEffect(() => {
     obtenerProductos();
+    obtenerReseñas(); // NUEVO: Llamamos a las reseñas al cargar la página
   }, []);
 
-  // 1. El usuario selecciona la foto y abrimos el modal
   const onFileChange = async (e) => {
     if (e.target.files && e.target.files.length > 0) {
       const file = e.target.files[0];
       let imageDataUrl = await readFile(file);
-      setImageSrc(imageDataUrl); // Esto abre el modal de recorte
+      setImageSrc(imageDataUrl);
     }
   };
 
-  // 2. Guarda las coordenadas mientras el usuario mueve el mouse
   const onCropComplete = useCallback((croppedArea, croppedAreaPixels) => {
     setCroppedAreaPixels(croppedAreaPixels);
   }, []);
 
-  // 3. El usuario confirma el recorte y lo subimos a Cloudinary
   const uploadCroppedImage = async () => {
     setSubiendo(true);
     try {
-      // Extraemos el pedazo de foto recortado
       const croppedImageBlob = await getCroppedImg(imageSrc, croppedAreaPixels);
 
       const formData = new FormData();
       formData.append("file", croppedImageBlob);
-      formData.append("upload_preset", "streetcaps_unsigned"); // Tu preset de Cloudinary
+      formData.append("upload_preset", "streetcaps_unsigned"); 
 
       const res = await fetch("https://api.cloudinary.com/v1_1/nxhnemnx/image/upload", {
         method: "POST",
@@ -113,7 +126,7 @@ function App() {
 
       if (data.secure_url) {
         setImagenUrl(data.secure_url);
-        setImageSrc(null); // Cerramos el modal
+        setImageSrc(null); 
         alert("¡Foto recortada y subida con éxito!");
       }
     } catch (err) {
@@ -126,13 +139,7 @@ function App() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const nuevoProducto = {
-      nombre,
-      tipo,
-      precio: Number(precio),
-      stock: Number(stock),
-      imagenUrl
-    };
+    const nuevoProducto = { nombre, tipo, precio: Number(precio), stock: Number(stock), imagenUrl };
 
     try {
       const response = await fetch('https://streetcapsapi.onrender.com/api/productos', {
@@ -155,7 +162,7 @@ function App() {
   };
 
   const eliminarProducto = async (id) => {
-    if (!confirm('¿Estás seguro de eliminar esta gorra?')) return;
+    if (!window.confirm('¿Estás seguro de eliminar esta gorra?')) return;
     try {
       const response = await fetch(`https://streetcapsapi.onrender.com/api/productos/${id}`, {
         method: 'DELETE',
@@ -168,6 +175,22 @@ function App() {
     }
   };
 
+  // NUEVO: Función para eliminar reseña
+  const eliminarReseña = async (id) => {
+    if (!window.confirm('¿Estás seguro de eliminar esta reseña?')) return;
+    try {
+      const response = await fetch(`http://localhost:8080/api/resenas/${id}`, {
+        method: 'DELETE',
+      });
+      if (response.ok) {
+        // Sacamos de la pantalla la reseña que acabamos de borrar en el backend
+        setReseñas(reseñas.filter(r => r.id !== id));
+      }
+    } catch (error) {
+      console.error('Error al eliminar reseña:', error);
+    }
+  };
+
   return (
     <div className="admin-container">
       <h1 className="admin-title">Panel de Administración - Street Caps</h1>
@@ -177,29 +200,9 @@ function App() {
         <div className="cropper-modal">
           <h3 style={{ color: 'white', marginBottom: '15px' }}>Ajustá la foto (Formato 4:5)</h3>
           <div className="cropper-container">
-            <Cropper
-              image={imageSrc}
-              crop={crop}
-              zoom={zoom}
-              aspect={4 / 5} /* Aquí fijamos la proporción recomendada */
-              onCropChange={setCrop}
-              onCropComplete={onCropComplete}
-              onZoomChange={setZoom}
-            />
+            <Cropper image={imageSrc} crop={crop} zoom={zoom} aspect={4 / 5} onCropChange={setCrop} onCropComplete={onCropComplete} onZoomChange={setZoom} />
           </div>
-
-          {/* Control deslizante para el zoom */}
-          <input
-            type="range"
-            value={zoom}
-            min={1}
-            max={3}
-            step={0.1}
-            aria-labelledby="Zoom"
-            onChange={(e) => setZoom(e.target.value)}
-            style={{ width: '90%', maxWidth: '400px', marginTop: '15px' }}
-          />
-
+          <input type="range" value={zoom} min={1} max={3} step={0.1} aria-labelledby="Zoom" onChange={(e) => setZoom(e.target.value)} style={{ width: '90%', maxWidth: '400px', marginTop: '15px' }} />
           <div className="cropper-controls">
             <button className="btn-cancel" onClick={() => setImageSrc(null)}>Cancelar</button>
             <button className="btn-confirm" onClick={uploadCroppedImage} disabled={subiendo}>
@@ -220,38 +223,11 @@ function App() {
             <option value="Jordan">Jordan</option>
             <option value="Belicas">Belicas</option>
           </select>
-          <input
-            type="number"
-            placeholder="Precio ($)"
-            value={precio}
-            min="0"
-            onChange={e => {
-              if (e.target.value === '' || Number(e.target.value) >= 0) {
-                setPrecio(e.target.value);
-              }
-            }}
-            required
-            className="form-input"
-          />
-
-          <input
-            type="number"
-            placeholder="Stock disponible"
-            value={stock}
-            min="0"
-            onChange={e => {
-              if (e.target.value === '' || Number(e.target.value) >= 0) {
-                setStock(e.target.value);
-              }
-            }}
-            required
-            className="form-input"
-          />
+          <input type="number" placeholder="Precio ($)" value={precio} min="0" onChange={e => { if (e.target.value === '' || Number(e.target.value) >= 0) setPrecio(e.target.value); }} required className="form-input" />
+          <input type="number" placeholder="Stock disponible" value={stock} min="0" onChange={e => { if (e.target.value === '' || Number(e.target.value) >= 0) setStock(e.target.value); }} required className="form-input" />
           <div className="file-upload-container">
             <label>Foto de la Gorra:</label>
             <input type="file" accept="image/*" onChange={onFileChange} required={!imagenUrl} className="form-input" />
-
-            {/* Vista previa pequeña en el formulario */}
             {imagenUrl && (
               <div style={{ marginTop: '15px' }}>
                 <p className="status-text success" style={{ marginBottom: '8px' }}>✓ Imagen recortada lista</p>
@@ -293,6 +269,44 @@ function App() {
           </tbody>
         </table>
       </div>
+
+      {/* NUEVO: Tabla de Gestión de Reseñas */}
+      <h3 className="table-title" style={{ marginTop: '3rem' }}>Gestión de Reseñas</h3>
+      <div className="table-responsive">
+        <table className="admin-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Nombre</th>
+              <th>Comentario</th>
+              <th>Estrellas</th>
+              <th>Fecha</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {reseñas.length === 0 ? (
+              <tr>
+                <td colSpan="6" style={{ textAlign: 'center', padding: '1rem' }}>No hay reseñas cargadas.</td>
+              </tr>
+            ) : (
+              reseñas.map(r => (
+                <tr key={r.id}>
+                  <td data-label="ID">{r.id}</td>
+                  <td data-label="Nombre">{r.nombre}</td>
+                  <td data-label="Comentario">"{r.comentario}"</td>
+                  <td data-label="Estrellas">{r.estrellas} ★</td>
+                  <td data-label="Fecha">{r.fecha}</td>
+                  <td data-label="Acciones">
+                    <button onClick={() => eliminarReseña(r.id)} className="delete-btn">Eliminar</button>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+
     </div>
   );
 }
