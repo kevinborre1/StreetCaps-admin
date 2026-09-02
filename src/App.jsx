@@ -179,7 +179,7 @@ function App() {
   const eliminarReseña = async (id) => {
     if (!window.confirm('¿Estás seguro de eliminar esta reseña?')) return;
     try {
-      const response = await fetch(`http://localhost:8080/api/resenas/${id}`, {
+      const response = await fetch(`https://streetcapsapi.onrender.com/api/resenas/${id}`, {
         method: 'DELETE',
       });
       if (response.ok) {
