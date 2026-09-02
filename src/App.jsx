@@ -56,10 +56,7 @@ function App() {
   const [tipo, setTipo] = useState('New Era');
   const [precio, setPrecio] = useState('');
   const [stock, setStock] = useState('');
-  
-  // NUEVO: Estado para múltiples imágenes (hasta 4)
   const [imagenes, setImagenes] = useState([]);
-  
   const [subiendo, setSubiendo] = useState(false);
 
   const [imageSrc, setImageSrc] = useState(null);
@@ -72,9 +69,7 @@ function App() {
       const timestamp = new Date().getTime();
       const response = await fetch(`https://streetcapsapi.onrender.com/api/productos?t=${timestamp}`, {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json'
-        }
+        headers: { 'Content-Type': 'application/json' }
       });
       if (response.ok) {
         const data = await response.json();
@@ -131,7 +126,6 @@ function App() {
       const data = await res.json();
 
       if (data.secure_url) {
-        // Agregamos la nueva foto al arreglo de fotos
         setImagenes([...imagenes, data.secure_url]);
         setImageSrc(null); 
       }
@@ -154,7 +148,6 @@ function App() {
       return;
     }
 
-    // NUEVO: Enviamos 'imagenes' en vez de 'imagenUrl'
     const nuevoProducto = { nombre, tipo, precio: Number(precio), stock: Number(stock), imagenes };
 
     try {
@@ -170,7 +163,7 @@ function App() {
         setNombre('');
         setPrecio('');
         setStock('');
-        setImagenes([]); // Reseteamos las fotos
+        setImagenes([]); 
         obtenerProductos();
       }
     } catch (error) {
@@ -203,6 +196,39 @@ function App() {
       }
     } catch (error) {
       console.error('Error al eliminar reseña:', error);
+    }
+  };
+
+  const editarStock = async (producto) => {
+    const nuevoStock = prompt(`Actualizar stock para "${producto.nombre}":`, producto.stock);
+    if (nuevoStock === null) return; 
+
+    const stockNum = Number(nuevoStock);
+    if (isNaN(stockNum) || stockNum < 0) {
+      alert("Por favor ingresa un número válido.");
+      return;
+    }
+
+    const productoActualizado = {
+      ...producto,
+      stock: stockNum
+    };
+
+    try {
+      const response = await fetch(`https://streetcapsapi.onrender.com/api/productos/${producto.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(productoActualizado)
+      });
+
+      if (response.ok) {
+        alert("¡Stock actualizado con éxito!");
+        obtenerProductos(); 
+      } else {
+        alert("Hubo un error al actualizar.");
+      }
+    } catch (error) {
+      console.error("Error al actualizar:", error);
     }
   };
 
@@ -294,8 +320,13 @@ function App() {
                 <td data-label="Tipo">{p.tipo}</td>
                 <td data-label="Precio">${p.precio.toLocaleString("es-AR")}</td>
                 <td data-label="Stock" className={p.stock > 0 ? 'stock-ok' : 'stock-low'}>{p.stock} un.</td>
-                <td data-label="Acciones">
-                  <button onClick={() => eliminarProducto(p.id)} className="delete-btn">Eliminar</button>
+                <td data-label="Acciones" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <button onClick={() => editarStock(p)} style={{ background: '#3b82f6', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.85rem' }}>
+                    Editar Stock
+                  </button>
+                  <button onClick={() => eliminarProducto(p.id)} className="delete-btn">
+                    Eliminar
+                  </button>
                 </td>
               </tr>
             ))}
