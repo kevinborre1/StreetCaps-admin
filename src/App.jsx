@@ -81,7 +81,7 @@ function App() {
   const obtenerReseñas = async () => {
     try {
       // Uso localhost:8080. Si ya subiste la API a Render, cambialo por tu link de onrender
-      const response = await fetch('http://localhost:8080/api/resenas');
+      const response = await fetch('https://streetcapsapi.onrender.com/api/resenas');
       if (response.ok) {
         const data = await response.json();
         setReseñas(data.reverse()); // Reverse para ver las más nuevas arriba
