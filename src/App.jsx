@@ -50,14 +50,16 @@ async function getCroppedImg(imageSrc, pixelCrop) {
 
 function App() {
   const [productos, setProductos] = useState([]);
-  // NUEVO: Estado para las reseñas
   const [reseñas, setReseñas] = useState([]); 
 
   const [nombre, setNombre] = useState('');
   const [tipo, setTipo] = useState('New Era');
   const [precio, setPrecio] = useState('');
   const [stock, setStock] = useState('');
-  const [imagenUrl, setImagenUrl] = useState('');
+  
+  // NUEVO: Estado para múltiples imágenes (hasta 4)
+  const [imagenes, setImagenes] = useState([]);
+  
   const [subiendo, setSubiendo] = useState(false);
 
   const [imageSrc, setImageSrc] = useState(null);
@@ -67,7 +69,13 @@ function App() {
 
   const obtenerProductos = async () => {
     try {
-      const response = await fetch('https://streetcapsapi.onrender.com/api/productos');
+      const timestamp = new Date().getTime();
+      const response = await fetch(`https://streetcapsapi.onrender.com/api/productos?t=${timestamp}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
       if (response.ok) {
         const data = await response.json();
         setProductos(data);
@@ -77,14 +85,12 @@ function App() {
     }
   };
 
-  // NUEVO: Función para obtener reseñas
   const obtenerReseñas = async () => {
     try {
-      // Uso localhost:8080. Si ya subiste la API a Render, cambialo por tu link de onrender
       const response = await fetch('https://streetcapsapi.onrender.com/api/resenas');
       if (response.ok) {
         const data = await response.json();
-        setReseñas(data.reverse()); // Reverse para ver las más nuevas arriba
+        setReseñas(data.reverse()); 
       }
     } catch (error) {
       console.error('Error al cargar reseñas:', error);
@@ -93,7 +99,7 @@ function App() {
 
   useEffect(() => {
     obtenerProductos();
-    obtenerReseñas(); // NUEVO: Llamamos a las reseñas al cargar la página
+    obtenerReseñas(); 
   }, []);
 
   const onFileChange = async (e) => {
@@ -125,9 +131,9 @@ function App() {
       const data = await res.json();
 
       if (data.secure_url) {
-        setImagenUrl(data.secure_url);
+        // Agregamos la nueva foto al arreglo de fotos
+        setImagenes([...imagenes, data.secure_url]);
         setImageSrc(null); 
-        alert("¡Foto recortada y subida con éxito!");
       }
     } catch (err) {
       console.error("Error al subir la imagen:", err);
@@ -137,12 +143,23 @@ function App() {
     }
   };
 
+  const removerImagen = (indexParaBorrar) => {
+    setImagenes(imagenes.filter((_, index) => index !== indexParaBorrar));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const nuevoProducto = { nombre, tipo, precio: Number(precio), stock: Number(stock), imagenUrl };
+    if (imagenes.length === 0) {
+      alert("Por favor, subí al menos una foto de la gorra.");
+      return;
+    }
+
+    // NUEVO: Enviamos 'imagenes' en vez de 'imagenUrl'
+    const nuevoProducto = { nombre, tipo, precio: Number(precio), stock: Number(stock), imagenes };
 
     try {
-      const response = await fetch('https://streetcapsapi.onrender.com/api/productos', {
+      const timestamp = new Date().getTime();
+      const response = await fetch(`https://streetcapsapi.onrender.com/api/productos?t=${timestamp}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(nuevoProducto)
@@ -153,7 +170,7 @@ function App() {
         setNombre('');
         setPrecio('');
         setStock('');
-        setImagenUrl('');
+        setImagenes([]); // Reseteamos las fotos
         obtenerProductos();
       }
     } catch (error) {
@@ -175,7 +192,6 @@ function App() {
     }
   };
 
-  // NUEVO: Función para eliminar reseña
   const eliminarReseña = async (id) => {
     if (!window.confirm('¿Estás seguro de eliminar esta reseña?')) return;
     try {
@@ -183,7 +199,6 @@ function App() {
         method: 'DELETE',
       });
       if (response.ok) {
-        // Sacamos de la pantalla la reseña que acabamos de borrar en el backend
         setReseñas(reseñas.filter(r => r.id !== id));
       }
     } catch (error) {
@@ -225,18 +240,36 @@ function App() {
           </select>
           <input type="number" placeholder="Precio ($)" value={precio} min="0" onChange={e => { if (e.target.value === '' || Number(e.target.value) >= 0) setPrecio(e.target.value); }} required className="form-input" />
           <input type="number" placeholder="Stock disponible" value={stock} min="0" onChange={e => { if (e.target.value === '' || Number(e.target.value) >= 0) setStock(e.target.value); }} required className="form-input" />
-          <div className="file-upload-container">
-            <label>Foto de la Gorra:</label>
-            <input type="file" accept="image/*" onChange={onFileChange} required={!imagenUrl} className="form-input" />
-            {imagenUrl && (
-              <div style={{ marginTop: '15px' }}>
-                <p className="status-text success" style={{ marginBottom: '8px' }}>✓ Imagen recortada lista</p>
-                <img src={imagenUrl} alt="Vista previa" style={{ width: '100px', borderRadius: '6px', border: '1px solid var(--border-color)' }} />
+          
+          <div className="file-upload-container" style={{ gridColumn: '1 / -1' }}>
+            <label>Fotos de la Gorra ({imagenes.length}/4):</label>
+            
+            {imagenes.length < 4 && (
+              <input type="file" accept="image/*" onChange={onFileChange} className="form-input" style={{ marginBottom: '15px' }} />
+            )}
+
+            {/* Galería de vistas previas */}
+            {imagenes.length > 0 && (
+              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginTop: '10px' }}>
+                {imagenes.map((imgUrl, index) => (
+                  <div key={index} style={{ position: 'relative' }}>
+                    <img src={imgUrl} alt={`Previa ${index + 1}`} style={{ width: '80px', height: '100px', objectFit: 'cover', borderRadius: '6px', border: '1px solid #444' }} />
+                    <button 
+                      type="button" 
+                      onClick={() => removerImagen(index)}
+                      style={{ position: 'absolute', top: '-5px', right: '-5px', background: 'red', color: 'white', border: 'none', borderRadius: '50%', width: '20px', height: '20px', cursor: 'pointer', fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
               </div>
             )}
           </div>
         </div>
-        <button type="submit" className="submit-btn" disabled={subiendo}>Guardar Gorra</button>
+        <button type="submit" className="submit-btn" disabled={subiendo || imagenes.length === 0}>
+          Guardar Gorra
+        </button>
       </form>
 
       {/* Tabla de Control de Stock */}
@@ -270,7 +303,7 @@ function App() {
         </table>
       </div>
 
-      {/* NUEVO: Tabla de Gestión de Reseñas */}
+      {/* Tabla de Gestión de Reseñas */}
       <h3 className="table-title" style={{ marginTop: '3rem' }}>Gestión de Reseñas</h3>
       <div className="table-responsive">
         <table className="admin-table">
